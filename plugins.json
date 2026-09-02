@@ -110,8 +110,8 @@
     "id": "qq-napcat",
     "repository_url": "https://github.com/diceframe/qq-napcat",
     "branch": "main",
-    "approved_release_tag": "v1.1.0",
-    "approved_commit": "09d24a2680adc288dc478e7536807140da01a26f",
+    "approved_release_tag": "v1.4.1",
+    "approved_commit": "2dece7558fd0f16e8ae79ce57bb6db671b5b8303",
     "risk_level": "unrestricted-process",
     "update_policy": "notify",
     "approved_permissions": [
