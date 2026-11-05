@@ -5,6 +5,8 @@ const path = require("path");
 
 const PLUGIN_ID_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const SEMVER_RE = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+// 与 DiceFrame 主仓库 scripts/validate_content_module.py 接受的文件名保持一致。
+const LICENSE_FILE_NAMES = ["LICENSE", "LICENSE.md", "LICENSE.txt"];
 const PLUGIN_TYPES = new Set([
   "channel-adapter", "bot-extension", "content-pack", "theme", "voice-pack",
   "import-export", "provider", "tool",
@@ -179,6 +181,13 @@ async function fileExists(owner, repo, filePath, ref, token) {
   return Boolean(await githubApi(`/repos/${owner}/${repo}/contents/${encodedPath}?ref=${encodeURIComponent(ref)}`, { token, allow404: true }));
 }
 
+async function findLicenseFile(owner, repo, ref, token) {
+  for (const name of LICENSE_FILE_NAMES) {
+    if (await fileExists(owner, repo, name, ref, token)) return name;
+  }
+  return "";
+}
+
 async function loadReleaseSnapshot(repositoryUrl, expectedId, token) {
   const parsed = normalizeRepositoryUrl(repositoryUrl);
   const repoInfo = await githubApi(`/repos/${parsed.owner}/${parsed.repo}`, { token });
@@ -217,9 +226,8 @@ async function loadReleaseSnapshot(repositoryUrl, expectedId, token) {
     : (await fileExists(parsed.owner, parsed.repo, "README_CN.md", commit.sha, token)) ||
       (await fileExists(parsed.owner, parsed.repo, "README.md", commit.sha, token));
   if (!hasDocs) throw new Error("仓库根目录需要 README_CN.md、README.md，或 plugin.json.docs 指向的说明文件");
-  const hasLicense = await fileExists(parsed.owner, parsed.repo, "LICENSE", commit.sha, token) ||
-    await fileExists(parsed.owner, parsed.repo, "LICENSE.md", commit.sha, token);
-  if (!hasLicense) throw new Error("仓库根目录需要 LICENSE 或 LICENSE.md");
+  const hasLicense = await findLicenseFile(parsed.owner, parsed.repo, commit.sha, token);
+  if (!hasLicense) throw new Error("仓库根目录需要 LICENSE、LICENSE.md 或 LICENSE.txt");
 
   return {
     id: expectedId,
@@ -370,12 +378,15 @@ function validateRegistry(entries, details) {
 
 module.exports = {
   ALLOWED_PERMISSIONS,
+  LICENSE_FILE_NAMES,
   PLUGIN_ID_RE,
+  SEMVER_RE,
   addedPermissions,
   classifyManifest,
   detailFromSnapshot,
   effectivePermissions,
   field,
+  findLicenseFile,
   generateDetails,
   githubApi,
   loadReleaseSnapshot,

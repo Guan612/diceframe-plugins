@@ -91,11 +91,25 @@ jobs:
           git config user.name "diceframe-registry[bot]"
           git config user.email "diceframe-registry[bot]@users.noreply.github.com"
           git add plugins.json plugin_details.json
+          if git diff --cached --quiet; then
+            echo "Registry already up to date; skipping commit."
+            exit 0
+          fi
           git commit -m "Host ${PLUGIN_ID} ${PLUGIN_VERSION} content pack"
-          git push
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push failed (attempt ${attempt}); rebasing on the latest main and retrying."
+            git pull --rebase --autostash
+          done
+          echo "Registry update could not be pushed. Reply /approve again to retry; finished steps are not repeated."
+          exit 1
       - run: node scripts/content-submission.cjs finish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 用来核对托管仓库里的 Release 确实指向被批准的提交。
+          CONTENT_HOSTING_TOKEN: ${{ secrets.CONTENT_HOSTING_TOKEN }}
           PLUGIN_ID: ${{ steps.approve.outputs.plugin_id }}
           PLUGIN_VERSION: ${{ steps.approve.outputs.version }}
           SUBMISSION_MODE: ${{ steps.approve.outputs.mode }}

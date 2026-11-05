@@ -8,7 +8,7 @@
 
 - `plugin.json`
 - `README_CN.md` 或 `README.md`
-- `LICENSE` 或 `LICENSE.md`
+- `LICENSE`、`LICENSE.md` 或 `LICENSE.txt`
 - `config.schema.json`（如果 `plugin.json.config_schema` 声明了它）
 
 插件必须先创建至少一个非草稿、非预发布的 GitHub Release。Release 指向的版本中，`plugin.json.version` 必须使用三段式版本号，例如 `1.0.0`。
@@ -43,7 +43,7 @@
 2. 打开 [投稿内容包](https://github.com/diceframe/diceframe-plugins/issues/new?template=add-content-pack.yml)，填写插件 ID、作者署名和许可证，把 `.zip` 拖进「插件包」一栏。
 3. 机器人用 DiceFrame 自己的校验器检查这个包：解压规则和客户端安装时一致，冒险、引用和语言文件都会真实加载一遍。失败时按提示修改，重新上传后编辑 Issue，或回复 `/recheck`。
 4. 检查通过后由维护者审核。批准后，DiceFrame 在 diceframe 组织下建 `module-<插件 ID>` 仓库，推送包内容，发布 `v<版本号>` Release，并加入索引。
-5. 包里没有 LICENSE 时，按表单里选的许可证生成一份，署名为作者；包里有 LICENSE 时以包里的为准。
+5. 包里没有许可证文件时，按表单里选的许可证生成一份，署名为作者；包里有 `LICENSE`、`LICENSE.md` 或 `LICENSE.txt` 时以包里的为准。
 
 更新时用同一个表单再投一次，版本号要比已收录的高；只有原投稿者或维护者可以更新同一个包。商店显示的作者是投稿时填写的署名，信任等级为社区（community）。
 
@@ -52,6 +52,8 @@
 ### 维护者配置
 
 批准步骤需要仓库 Secret `CONTENT_HOSTING_TOKEN`：能在 diceframe 组织下创建公开仓库、推送内容和发布 Release 的凭据（组织的 fine-grained token 或 GitHub App 安装令牌，需要 Administration 和 Contents 的读写权限）。没有配置时 `/approve` 会直接报错，不会建任何仓库。
+
+批准中途失败（例如索引推送失败）时可以再回复一次 `/approve`：已经创建的仓库、提交和 Release 会按记录沿用，不会重复发布；同名但不是这次投稿创建的仓库会被拒绝，不会被清空或覆盖。
 
 ## 自动检查范围
 

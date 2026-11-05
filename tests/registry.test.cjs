@@ -3,10 +3,12 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
+  LICENSE_FILE_NAMES,
   addedPermissions,
   classifyManifest,
   detailFromSnapshot,
   effectivePermissions,
+  loadReleaseSnapshot,
   normalizeRepositoryUrl,
   parseSubmission,
   validateRegistry,
@@ -166,4 +168,65 @@ test("registry validation rejects duplicate IDs and mismatched details", () => {
   assert.equal(validateRegistry([entry], [{ id: "demo-pack" }]), true);
   assert.throws(() => validateRegistry([entry, entry], [{ id: "demo-pack" }]), /重复插件 ID/);
   assert.throws(() => validateRegistry([entry], [{ id: "other-pack" }]), /ID 不一致/);
+});
+
+// COMPAT-1：索引侧与主仓库校验器识别同一组许可证文件名。
+function snapshotFetch(licenseFiles) {
+  const commitSha = "0".repeat(40);
+  const file = text => ({ type: "file", encoding: "base64", content: Buffer.from(text, "utf8").toString("base64") });
+  const json = body => new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } });
+  const missing = () => new Response(JSON.stringify({ message: "Not Found" }), { status: 404 });
+  return async url => {
+    const href = String(url);
+    if (href.endsWith("/repos/example/demo-pack")) {
+      return json({ private: false, archived: false, disabled: false, default_branch: "main", stargazers_count: 3 });
+    }
+    if (href.endsWith("/releases/latest")) {
+      return json({ draft: false, prerelease: false, tag_name: "v1.0.0", html_url: "https://github.com/example/demo-pack/releases/tag/v1.0.0" });
+    }
+    if (href.includes(`/commits/${encodeURIComponent("v1.0.0")}`)) return json({ sha: commitSha });
+    if (href.includes("/contents/plugin.json?")) return json(file(JSON.stringify(baseManifest)));
+    if (href.includes("/git/trees/")) return json({ truncated: false, tree: [{ type: "blob", path: "plugin.json", size: 10 }] });
+    if (href.includes("/contents/config.schema.json?")) return json(file("{}"));
+    if (href.includes("/contents/README.md?")) return json(file("# demo\n"));
+    if (href.includes("/contents/")) {
+      const name = decodeURIComponent(href.split("/contents/")[1].split("?")[0]);
+      if (licenseFiles.includes(name)) return json(file("license text\n"));
+      return missing();
+    }
+    throw new Error(`unexpected fetch: ${href}`);
+  };
+}
+
+test("COMPAT-1: LICENSE.txt alone is enough for a hosted release snapshot", async () => {
+  const original = globalThis.fetch;
+  try {
+    globalThis.fetch = snapshotFetch(["LICENSE.txt"]);
+    const snapshot = await loadReleaseSnapshot("https://github.com/example/demo-pack", "demo-pack", "token");
+    const detail = detailFromSnapshot({
+      id: "demo-pack",
+      repository_url: "https://github.com/example/demo-pack",
+      approved_permissions: ["content.read"],
+      risk_level: "declarative",
+      trust_level: "community",
+    }, snapshot);
+    assert.equal(detail.installable, true);
+    assert.equal(detail.latest.version, "1.2.3");
+  } finally {
+    globalThis.fetch = original;
+  }
+  assert.deepEqual(LICENSE_FILE_NAMES, ["LICENSE", "LICENSE.md", "LICENSE.txt"]);
+});
+
+test("COMPAT-1: a repository without any recognized LICENSE is rejected", async () => {
+  const original = globalThis.fetch;
+  try {
+    globalThis.fetch = snapshotFetch([]);
+    await assert.rejects(
+      () => loadReleaseSnapshot("https://github.com/example/demo-pack", "demo-pack", "token"),
+      /LICENSE、LICENSE\.md 或 LICENSE\.txt/,
+    );
+  } finally {
+    globalThis.fetch = original;
+  }
 });
