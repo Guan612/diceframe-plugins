@@ -1,0 +1,67 @@
+name: 投稿内容包 / Submit content pack
+description: 没有 GitHub 仓库也能投稿：上传从 DiceFrame 导出的内容包，由 DiceFrame 代为托管
+title: "[Content Pack] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        适合冒险模组、世界、规则、角色卡等纯内容包（不含可执行程序）。
+
+        1. 在 DiceFrame 里导出内容包。GitHub 不接受 `.dfplugin` 后缀，请把文件改名为 `.zip`（客户端的「投稿」按钮会直接下载 `.zip`）。
+        2. 把 `.zip` 拖到下面的「插件包」一栏，等它变成一行链接后再提交。
+        3. 机器人会检查这个包。检查通过、维护者批准后，DiceFrame 会在 diceframe 组织下建一个 `module-<插件 ID>` 仓库代为托管并发布，商店里就能安装了。
+
+        更新已收录的包：用同一个表单再投一次，版本号要比上次高。已经有自己公开仓库的作者，请改用「添加插件」表单。
+  - type: input
+    id: plugin_id
+    attributes:
+      label: 插件 ID / Plugin ID
+      description: 必须与包里 plugin.json 的 id 一致，例如 my-adventure
+      placeholder: my-adventure
+    validations:
+      required: true
+  - type: textarea
+    id: package
+    attributes:
+      label: 插件包 / Package
+      description: 把导出的 .zip 文件拖到这里，大小不超过 20 MB
+      placeholder: 把 .zip 文件拖到这里
+    validations:
+      required: true
+  - type: input
+    id: author
+    attributes:
+      label: 作者署名 / Author
+      description: 商店里显示的作者名；留空则使用你的 GitHub 用户名
+  - type: dropdown
+    id: license
+    attributes:
+      label: 许可证 / License
+      description: 别人可以怎样使用你的内容。包里没有 LICENSE 文件时，DiceFrame 会按这里的选择生成一份
+      options:
+        - CC BY 4.0
+        - CC BY-NC 4.0
+        - CC BY-SA 4.0
+        - CC0 1.0
+        - MIT
+        - 包里已有 LICENSE / Included in package
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: 投稿确认 / Confirmation
+      options:
+        - label: 内容是我原创的，或者我已获得改编和分发的授权
+          required: true
+        - label: 同意 DiceFrame 在 diceframe 组织下建仓库公开托管这个包，并按所选许可证分发
+          required: true
+        - label: 包里没有 Token、Cookie、私钥、个人路径或运行数据
+          required: true
+        - label: 我理解自动检查通过不代表 DiceFrame 对内容作出保证
+          required: true
+  - type: textarea
+    id: note
+    attributes:
+      label: 补充说明 / Additional information
+      description: 可选；例如这是替谁代投稿、内容来源、需要维护者注意的地方

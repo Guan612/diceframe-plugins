@@ -26,6 +26,8 @@
 
 完整要求见 [贡献指南](CONTRIBUTING.md)。
 
+**没有自己的仓库？** 冒险模组、世界、规则、角色卡这类纯内容包，可以用「投稿内容包」表单直接上传从 DiceFrame 导出的 `.zip`。审核通过后由 DiceFrame 在 diceframe 组织下代为托管，见[贡献指南](CONTRIBUTING.md#没有自己的仓库投稿内容包)。
+
 ## 更新策略
 
 - 声明型 `content-pack`、`theme`、`voice-pack`：权限和运行方式不变时，只检测并提示新版本，由用户确认后更新。

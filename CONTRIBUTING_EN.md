@@ -4,7 +4,7 @@
 
 ## Repository requirements
 
-A plugin must use its own public GitHub repository, with the plugin at the repository root. The root must contain:
+A plugin must use its own public GitHub repository, with the plugin at the repository root. Pure content packs can skip the repository; see [No repository? Submit a content pack](#no-repository-submit-a-content-pack). The root must contain:
 
 - `plugin.json`
 - `README_CN.md` or `README.md`
@@ -34,6 +34,24 @@ For an ordinary update:
 3. Publish a non-draft, non-prerelease GitHub Release.
 
 Declarative plugins are checked and prompted when the user opens the plugin store, and updates are installed only after user confirmation, while permissions and runtime remain unchanged. Process plugins only notify users. Permission expansion, a change from declarative to process execution, repository transfer, or plugin ID change requires another review.
+
+## No repository? Submit a content pack
+
+Pure content packs without an executable entry point (adventure modules, worlds, rules, character cards) do not need their own GitHub repository:
+
+1. Export the content pack from DiceFrame and rename the file to `.zip` (GitHub does not accept the `.dfplugin` extension).
+2. Open [Submit content pack](https://github.com/diceframe/diceframe-plugins/issues/new?template=add-content-pack.yml), enter the plugin ID, author credit and license, and drag the `.zip` into the Package field.
+3. Automation checks the package with DiceFrame's own validator: it unpacks the archive with the same rules as a client install and really loads adventures, references and locale files. If it fails, fix the package, upload it again by editing the issue, or reply `/recheck`.
+4. A maintainer reviews the package once validation passes. On approval DiceFrame creates `module-<plugin id>` under the diceframe organization, pushes the package contents, publishes a `v<version>` Release and adds it to the registry.
+5. When the package has no LICENSE, one is generated from the license chosen in the form, crediting the author. A LICENSE inside the package is kept as is.
+
+To update, submit the same form again with a higher version. Only the original submitter or a maintainer can update a hosted pack. The store shows the author credit from the submission, and the trust level is community.
+
+Authors without a GitHub account can ask a maintainer to submit on their behalf and name the author under Additional information.
+
+### Maintainer setup
+
+The approval step needs the repository secret `CONTENT_HOSTING_TOKEN`: a credential that can create public repositories, push contents and publish releases in the diceframe organization (an organization fine-grained token or a GitHub App installation token with read and write access to Administration and Contents). Without it `/approve` fails before creating anything.
 
 ## Automated checks
 

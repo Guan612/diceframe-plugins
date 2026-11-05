@@ -26,6 +26,8 @@ If your plugin is not accepted, the reason is given so you can adjust and resubm
 
 See the [contribution guide](CONTRIBUTING_EN.md) for the complete requirements.
 
+**No repository?** Pure content packs such as adventure modules, worlds, rules and character cards can be submitted with the “Submit content pack” form by uploading the `.zip` exported from DiceFrame. After approval DiceFrame hosts it under the diceframe organization; see the [contribution guide](CONTRIBUTING_EN.md#no-repository-submit-a-content-pack).
+
 ## Update policy
 
 - Declarative `content-pack`, `theme`, and `voice-pack` plugins are checked for new versions and notified; updates are installed only after user confirmation, while their permissions and runtime model remain unchanged.

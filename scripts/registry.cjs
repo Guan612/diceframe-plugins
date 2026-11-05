@@ -245,7 +245,9 @@ function detailFromSnapshot(entry, snapshot) {
     id: entry.id,
     repository_url: entry.repository_url,
     branch: snapshot.branch,
-    author: snapshot.owner,
+    // DiceFrame 代为托管的包仓库属于 diceframe 组织，作者以投稿时的署名为准。
+    author: entry.author || snapshot.owner,
+    ...(entry.license ? { license: entry.license } : {}),
     stars: snapshot.stars,
     release_tag: snapshot.releaseTag,
     release_url: snapshot.releaseUrl,
@@ -322,6 +324,19 @@ function writeJson(filePath, value) {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
+function validateHostedEntry(entry, id) {
+  if (entry.hosted !== true) throw new Error(`${id}.hosted 只能是 true`);
+  const expected = `https://github.com/diceframe/module-${id}`;
+  if (normalizeRepositoryUrl(entry.repository_url).url !== expected) {
+    throw new Error(`${id} 是托管内容包，仓库地址必须是 ${expected}`);
+  }
+  for (const key of ["author", "submitted_by"]) {
+    if (typeof entry[key] !== "string" || !entry[key].trim()) throw new Error(`${id}.${key} 不能为空`);
+  }
+  if (entry.license !== undefined && typeof entry.license !== "string") throw new Error(`${id}.license 必须是字符串`);
+  if (entry.trust_level !== "community") throw new Error(`${id} 是托管内容包，trust_level 必须是 community`);
+}
+
 function validateRegistry(entries, details) {
   if (!Array.isArray(entries) || !Array.isArray(details)) throw new Error("plugins.json 和 plugin_details.json 必须是数组");
   const ids = new Set();
@@ -343,6 +358,7 @@ function validateRegistry(entries, details) {
     if (distribution === "repository" && !["automatic", "notify"].includes(entry.update_policy)) {
       throw new Error(`${id} 的社区更新策略必须是 automatic 或 notify`);
     }
+    if (entry.hosted !== undefined) validateHostedEntry(entry, id);
   }
   const detailIds = details.map(item => String(item && item.id || ""));
   if (new Set(detailIds).size !== detailIds.length) throw new Error("plugin_details.json 包含重复 ID");
@@ -359,6 +375,7 @@ module.exports = {
   classifyManifest,
   detailFromSnapshot,
   effectivePermissions,
+  field,
   generateDetails,
   githubApi,
   loadReleaseSnapshot,

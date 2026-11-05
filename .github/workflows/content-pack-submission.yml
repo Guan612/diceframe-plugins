@@ -1,0 +1,120 @@
+name: Content pack submission
+
+on:
+  issues:
+    types: [opened, edited]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: content-pack-submission-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: >-
+      startsWith(github.event.issue.title, '[Content Pack]') &&
+      (github.event_name == 'issues' || github.event.comment.body == '/recheck')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      # 校验器来自 DiceFrame 主仓库：解压与内容规则和客户端安装时一致。
+      - uses: actions/checkout@v4
+        with:
+          repository: diceframe/diceframe
+          ref: main
+          path: .diceframe
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: .diceframe/requirements.txt
+      - run: python -m pip install -r .diceframe/requirements.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: node scripts/content-submission.cjs validate
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DICEFRAME_ROOT: ${{ github.workspace }}/.diceframe
+
+  approve:
+    if: >-
+      startsWith(github.event.issue.title, '[Content Pack]') &&
+      github.event_name == 'issue_comment' &&
+      github.event.comment.body == '/approve'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    concurrency:
+      group: plugin-registry-write
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          repository: diceframe/diceframe
+          ref: main
+          path: .diceframe
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: .diceframe/requirements.txt
+      - run: python -m pip install -r .diceframe/requirements.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - id: approve
+        run: node scripts/content-submission.cjs approve
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 组织级凭据：在 diceframe 组织下建 module-<插件 ID> 仓库、推送内容、发布 Release。
+          CONTENT_HOSTING_TOKEN: ${{ secrets.CONTENT_HOSTING_TOKEN }}
+          DICEFRAME_ROOT: ${{ github.workspace }}/.diceframe
+      - name: Commit registry update
+        env:
+          PLUGIN_ID: ${{ steps.approve.outputs.plugin_id }}
+          PLUGIN_VERSION: ${{ steps.approve.outputs.version }}
+        run: |
+          git config user.name "diceframe-registry[bot]"
+          git config user.email "diceframe-registry[bot]@users.noreply.github.com"
+          git add plugins.json plugin_details.json
+          git commit -m "Host ${PLUGIN_ID} ${PLUGIN_VERSION} content pack"
+          git push
+      - run: node scripts/content-submission.cjs finish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PLUGIN_ID: ${{ steps.approve.outputs.plugin_id }}
+          PLUGIN_VERSION: ${{ steps.approve.outputs.version }}
+          SUBMISSION_MODE: ${{ steps.approve.outputs.mode }}
+          APPROVED_BY: ${{ steps.approve.outputs.approved_by }}
+
+  reject:
+    if: >-
+      startsWith(github.event.issue.title, '[Content Pack]') &&
+      github.event_name == 'issue_comment' &&
+      startsWith(github.event.comment.body, '/reject')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: node scripts/content-submission.cjs reject
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
